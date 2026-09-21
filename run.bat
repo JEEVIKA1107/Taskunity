@@ -11,7 +11,7 @@ echo.
 where node >nul 2>nul
 if %errorlevel% neq 0 (
     echo [ERROR] Node.js is not found on your system!
-    echo Please install Node.js (v18 or higher) from https://nodejs.org/
+    echo Please install Node.js v18 or higher from https://nodejs.org/
     echo.
     pause
     exit /b 1
@@ -56,8 +56,8 @@ echo  Starting TASK UNITY at http://localhost:5000
 echo ====================================================
 echo.
 
-:: Automatically open default browser after 2 seconds
-start "" cmd /c "timeout /t 2 /nobreak >nul & start http://localhost:5000"
+:: Automatically open browser
+start http://localhost:5000
 
 :: Start the server
 call npm run server
