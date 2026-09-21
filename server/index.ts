@@ -76,9 +76,9 @@ if (fs.existsSync(clientDist)) {
 async function startServer() {
   try {
     await initDatabase();
-    app.listen(Number(PORT), '0.0.0.0', () => {
+    app.listen(Number(PORT), () => {
       console.log(`====================================================`);
-      console.log(`TASK UNITY API Server running at http://127.0.0.1:${PORT}`);
+      console.log(`TASK UNITY API Server running at http://localhost:${PORT} and http://127.0.0.1:${PORT}`);
       console.log(`Cooperative platform initialized.`);
       console.log(`====================================================`);
     });
