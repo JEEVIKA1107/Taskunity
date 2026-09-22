@@ -7,6 +7,15 @@ echo    TASK UNITY -- Cooperative Gig Platform
 echo ====================================================
 echo.
 
+:: Check if Task Unity is already running on port 5000
+netstat -ano | findstr /C:":5000" | findstr /C:"LISTENING" >nul 2>nul
+if %errorlevel% equ 0 (
+    echo [OK] Task Unity server is ALREADY RUNNING!
+    echo Opening http://localhost:5000 in your browser...
+    start http://localhost:5000
+    exit /b 0
+)
+
 :: Check for Node.js
 where node >nul 2>nul
 if %errorlevel% neq 0 (
