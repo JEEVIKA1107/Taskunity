@@ -84,6 +84,25 @@ export async function submitBasicProfile(req: AuthenticatedRequest, res: Respons
       WHERE worker_id = ?
     `, [dob, gender, address, district, state, profilePhoto || '', primarySkillId, secSkillsJson, Number(yearsExperience) || 0, preferredWorkingArea || district, now, workerId]);
 
+    // Upsert primary skill in worker_skills
+    const existingPrimary = await getOne<any>(`SELECT id FROM worker_skills WHERE worker_id = ? AND is_primary = 1`, [workerId]);
+    if (existingPrimary) {
+      await runQuery(`UPDATE worker_skills SET skill_id = ?, years_experience = ? WHERE id = ?`, [primarySkillId, Number(yearsExperience) || 0, existingPrimary.id]);
+    } else {
+      await runQuery(`INSERT INTO worker_skills (id, worker_id, skill_id, is_primary, years_experience) VALUES (?, ?, ?, 1, ?)`, [generateId('ws'), workerId, primarySkillId, Number(yearsExperience) || 0]);
+    }
+
+    // Save secondary skills into worker_skills
+    if (Array.isArray(secondarySkills)) {
+      await runQuery(`DELETE FROM worker_skills WHERE worker_id = ? AND is_primary = 0`, [workerId]);
+      for (const sSkill of secondarySkills) {
+        const skillRec = await getOne<any>(`SELECT skill_id FROM skills WHERE skill_id = ? OR name = ?`, [sSkill, sSkill]);
+        if (skillRec && skillRec.skill_id !== primarySkillId) {
+          await runQuery(`INSERT INTO worker_skills (id, worker_id, skill_id, is_primary, years_experience) VALUES (?, ?, ?, 0, ?)`, [generateId('ws'), workerId, skillRec.skill_id, Number(yearsExperience) || 0]);
+        }
+      }
+    }
+
     await logAudit(userId, 'WORKER_BASIC_PROFILE_SUBMITTED', 'WORKER', workerId, { district, primarySkillId }, req.ip || '127.0.0.1');
 
     res.json({

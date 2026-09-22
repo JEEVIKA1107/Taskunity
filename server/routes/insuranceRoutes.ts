@@ -4,7 +4,8 @@ import {
   getWorkerPolicyDetails,
   getContributionHistory,
   submitInsuranceClaim,
-  getWorkerClaims
+  getWorkerClaims,
+  downloadPolicyDocument
 } from '../controllers/insuranceController';
 import { authenticateToken, requireWorker } from '../middleware/auth';
 
@@ -15,6 +16,7 @@ router.get('/schemes', authenticateToken, getOfficialSchemes);
 
 // Worker specific insurance routes
 router.get('/my-policy', authenticateToken, requireWorker, getWorkerPolicyDetails);
+router.get('/my-policy/download', authenticateToken, requireWorker, downloadPolicyDocument);
 router.get('/contributions', authenticateToken, requireWorker, getContributionHistory);
 router.post('/claims', authenticateToken, requireWorker, submitInsuranceClaim);
 router.get('/my-claims', authenticateToken, requireWorker, getWorkerClaims);

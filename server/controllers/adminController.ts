@@ -7,11 +7,11 @@ import { determineWorkerPendingStep } from './authController';
 export async function getAdminOverview(req: AuthenticatedRequest, res: Response): Promise<void> {
   try {
     const totalWorkersRow = await getOne<any>(`SELECT COUNT(*) as count FROM workers`);
-    const activeWorkersRow = await getOne<any>(`SELECT COUNT(*) as count FROM workers WHERE onboarding_status = 'ACTIVE'`);
+    const activeWorkersRow = await getOne<any>(`SELECT COUNT(*) as count FROM worker_availability WHERE is_available = 1`);
     const totalCustomersRow = await getOne<any>(`SELECT COUNT(*) as count FROM customers`);
     const activeJobsRow = await getOne<any>(`SELECT COUNT(*) as count FROM bookings WHERE status IN ('ACCEPTED', 'WORKER_TRAVELLING', 'ARRIVED', 'SERVICE_IN_PROGRESS')`);
     const completedTodayRow = await getOne<any>(`SELECT COUNT(*) as count FROM bookings WHERE status = 'COMPLETED'`);
-    const revenueRow = await getOne<any>(`SELECT SUM(service_amount) as total FROM invoices WHERE status = 'PAID'`);
+    const revenueRow = await getOne<any>(`SELECT COALESCE(SUM(service_amount), 0) as total FROM invoices WHERE status = 'PAID'`);
     const pendingVerificationsRow = await getOne<any>(`
       SELECT (
         (SELECT COUNT(*) FROM eshram_records WHERE verification_status IN ('PENDING', 'UNDER_REVIEW')) +
@@ -21,20 +21,23 @@ export async function getAdminOverview(req: AuthenticatedRequest, res: Response)
       ) as total
     `);
     const insuranceActiveRow = await getOne<any>(`SELECT COUNT(*) as count FROM insurance_policies WHERE verification_status = 'VERIFIED'`);
+    const insuranceExpiringRow = await getOne<any>(`SELECT COUNT(*) as count FROM insurance_policies WHERE verification_status = 'VERIFIED' AND date(expiry_date) <= date('now', '+30 days')`);
     const openComplaintsRow = await getOne<any>(`SELECT COUNT(*) as count FROM complaints WHERE status IN ('Submitted', 'Assigned', 'Under Review', 'Waiting for Information')`);
+    const claimsCountRow = await getOne<any>(`SELECT COUNT(*) as count FROM insurance_claims WHERE status IN ('Submitted', 'Under Review', 'Documents Required')`);
 
-    // Realistic production metrics combined with live database statistics
+    // Pure database driven operational metrics (zero hardcoded numbers)
     const stats = {
-      total_workers: 1248 + (totalWorkersRow?.count || 0),
-      workers_online: 320 + (activeWorkersRow?.count || 0),
-      active_jobs: 184 + (activeJobsRow?.count || 0),
-      completed_today: 562 + (completedTodayRow?.count || 0),
-      total_customers: 8420 + (totalCustomersRow?.count || 0),
-      revenue: 425000 + (revenueRow?.total || 0),
-      pending_verification: 42 + (pendingVerificationsRow?.total || 0),
-      insurance_active: 1050 + (insuranceActiveRow?.count || 0),
-      insurance_expiring: 26,
-      open_complaints: 18 + (openComplaintsRow?.count || 0)
+      total_workers: totalWorkersRow?.count || 0,
+      workers_online: activeWorkersRow?.count || 0,
+      active_jobs: activeJobsRow?.count || 0,
+      completed_today: completedTodayRow?.count || 0,
+      total_customers: totalCustomersRow?.count || 0,
+      revenue: revenueRow?.total || 0,
+      pending_verification: pendingVerificationsRow?.total || 0,
+      insurance_active: insuranceActiveRow?.count || 0,
+      insurance_expiring: insuranceExpiringRow?.count || 0,
+      open_complaints: openComplaintsRow?.count || 0,
+      claims_count: claimsCountRow?.count || 0
     };
 
     res.json({ success: true, stats });
@@ -480,5 +483,24 @@ export async function updateClaimStatus(req: AuthenticatedRequest, res: Response
     res.json({ success: true, message: `Claim status updated to ${status}.` });
   } catch (err: any) {
     res.status(500).json({ success: false, message: 'Failed to update claim status.' });
+  }
+}
+
+export async function getAdminClaims(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const claims = await getAll<any>(`
+      SELECT ic.*, u.name as worker_name, u.phone as worker_phone, sk.name as skill_name,
+             ip.policy_number, ip.provider_or_scheme
+      FROM insurance_claims ic
+      JOIN workers w ON ic.worker_id = w.worker_id
+      JOIN users u ON w.user_id = u.user_id
+      LEFT JOIN skills sk ON w.primary_skill_id = sk.skill_id
+      LEFT JOIN insurance_policies ip ON ic.policy_id = ip.policy_id
+      ORDER BY ic.submitted_at DESC
+    `);
+
+    res.json({ success: true, claims });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: 'Failed to fetch claims list.' });
   }
 }

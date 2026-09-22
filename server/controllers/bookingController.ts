@@ -21,6 +21,18 @@ export async function getServices(req: AuthenticatedRequest, res: Response): Pro
   }
 }
 
+function haversineDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.round(R * c * 10) / 10;
+}
+
 export async function findMatchingWorkers(req: AuthenticatedRequest, res: Response): Promise<void> {
   try {
     const { skillId, serviceId, lat, lng } = req.query;
@@ -32,9 +44,9 @@ export async function findMatchingWorkers(req: AuthenticatedRequest, res: Respon
     }
 
     // Matching Engine:
-    // Matches verified workers with onboarding_status = 'ACTIVE', is_available = 1, matching primary or secondary skill
+    // Matches verified workers with onboarding_status = 'ACTIVE', matching primary or secondary skills
     const workers = await getAll<any>(`
-      SELECT w.worker_id, w.user_id, w.years_experience, w.preferred_working_area, w.rating,
+      SELECT w.worker_id, w.user_id, w.district, w.years_experience, w.preferred_working_area, w.rating,
              w.jobs_completed, w.insurance_contribution_enabled,
              u.name, u.phone, u.email,
              sk.name as skill_name,
@@ -52,11 +64,42 @@ export async function findMatchingWorkers(req: AuthenticatedRequest, res: Respon
       LEFT JOIN certifications ct ON w.worker_id = ct.worker_id
       LEFT JOIN insurance_policies ip ON w.worker_id = ip.worker_id
       WHERE w.onboarding_status = 'ACTIVE'
-        AND (w.primary_skill_id = ? OR ? IS NULL OR ? = '')
+        AND (
+          ? IS NULL OR ? = '' OR w.primary_skill_id = ?
+          OR EXISTS (SELECT 1 FROM worker_skills ws WHERE ws.worker_id = w.worker_id AND ws.skill_id = ?)
+        )
       ORDER BY va.is_available DESC, w.rating DESC, w.years_experience DESC
-    `, [targetSkillId || '', targetSkillId || '', targetSkillId || '']);
+    `, [targetSkillId || '', targetSkillId || '', targetSkillId || '', targetSkillId || '']);
 
-    res.json({ success: true, workers });
+    const custLat = Number(lat);
+    const custLng = Number(lng);
+    const hasCustGeo = !isNaN(custLat) && !isNaN(custLng) && custLat !== 0 && custLng !== 0;
+
+    for (const wrk of workers) {
+      if (hasCustGeo && wrk.latitude && wrk.longitude) {
+        wrk.distance_km = haversineDistanceKm(custLat, custLng, Number(wrk.latitude), Number(wrk.longitude));
+      } else {
+        wrk.distance_km = 2.5;
+      }
+    }
+
+    // Sort: Online workers first, then closest distance, then rating
+    workers.sort((a, b) => {
+      const availA = a.is_available ? 1 : 0;
+      const availB = b.is_available ? 1 : 0;
+      if (availB !== availA) return availB - availA;
+      if (a.distance_km !== b.distance_km) return a.distance_km - b.distance_km;
+      return (b.rating || 5) - (a.rating || 5);
+    });
+
+    res.json({
+      success: true,
+      workers,
+      count: workers.length,
+      message: workers.length > 0
+        ? `${workers.length} verified worker(s) matched in your area.`
+        : 'No verified workers are currently available nearby for this service.'
+    });
   } catch (err: any) {
     res.status(500).json({ success: false, message: 'Matching engine query failed.' });
   }

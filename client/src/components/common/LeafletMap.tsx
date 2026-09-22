@@ -19,7 +19,7 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   workerLng,
   customerLat,
   customerLng,
-  workerName = 'Raj Kumar (Electrician)',
+  workerName = 'Verified Cooperative Worker',
   customerAddress = 'Customer Location',
   statusText = 'TRAVELLING_TO_CUSTOMER',
   etaMinutes = 12,

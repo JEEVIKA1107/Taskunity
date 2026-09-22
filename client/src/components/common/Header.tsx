@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
-import { ShieldCheck, Globe, LogOut, Users } from 'lucide-react';
+import { SUPPORTED_LANGUAGES } from '../../i18n/translations';
+import { Globe, LogOut } from 'lucide-react';
 
 interface HeaderProps {
   onOpenNotifications?: () => void;
@@ -31,74 +32,69 @@ export const Header: React.FC<HeaderProps> = ({ onOpenNotifications: _onOpenNoti
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo & Cooperative Identity */}
-          <div className="flex items-center space-x-3 cursor-pointer" onClick={() => onNavigate && onNavigate('home')}>
-            <div className="w-10 h-10 rounded-xl bg-coop-600 flex items-center justify-center text-white shadow-md shadow-coop-100">
-              <Users className="w-6 h-6" />
+        <div className="flex justify-between h-16 items-center">
+          {/* Brand / Logo */}
+          <div className="flex items-center space-x-3 cursor-pointer" onClick={() => onNavigate && onNavigate('dashboard')}>
+            <div className="w-10 h-10 rounded-2xl bg-coop-600 flex items-center justify-center text-white font-black text-xl shadow-md shadow-coop-200">
+              TU
             </div>
             <div>
-              <div className="flex items-center space-x-2">
-                <span className="text-xl font-black tracking-tight text-slate-900">TASK UNITY</span>
-                <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-coop-100 text-coop-800 border border-coop-300">
-                  <ShieldCheck className="w-3 h-3 mr-1" />
+              <div className="font-black text-lg tracking-tight text-slate-900 flex items-center space-x-1.5">
+                <span>TASK UNITY</span>
+                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-coop-100 text-coop-800">
                   Cooperative
                 </span>
               </div>
-              <p className="hidden md:block text-[11px] text-slate-500 font-medium tracking-tight">
-                {t('app_tagline')}
-              </p>
+              <div className="text-[10px] text-slate-400 font-medium tracking-wide">
+                Verified Skills • 10% Social Welfare Pool
+              </div>
             </div>
           </div>
 
-          {/* Right Action Bar */}
-          <div className="flex items-center space-x-2 sm:space-x-3">
+          {/* Controls: Demo Accounts + Language Selector + User Info / Logout */}
+          <div className="flex items-center space-x-3">
             {/* Quick Demo Switcher */}
             <div className="relative">
               <button
                 type="button"
                 onClick={() => setShowDemoMenu(!showDemoMenu)}
-                className="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-amber-50 text-amber-900 border border-amber-300 hover:bg-amber-100 flex items-center transition"
-                title="Switch demo scenarios for acceptance testing"
+                disabled={loadingDemo}
+                className="hidden sm:flex items-center space-x-1 px-2.5 py-1.5 text-xs font-semibold text-coop-700 bg-coop-50 hover:bg-coop-100 border border-coop-200 rounded-lg transition"
               >
-                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse mr-1.5" />
-                {loadingDemo ? 'Switching...' : 'Quick Demo'}
+                <span>{loadingDemo ? 'Logging in...' : '⚡ Demo Accounts'}</span>
               </button>
 
               {showDemoMenu && (
-                <div className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50 animate-in fade-in zoom-in-95">
-                  <div className="px-3 py-1 border-b border-slate-100 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                    Demo Scenarios
-                  </div>
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50 divide-y divide-slate-100">
                   <button
-                    onClick={() => handleQuickLogin('lakshmi@example.com', 'Password123!')}
+                    onClick={() => handleQuickLogin('priya.customer@taskunity.org', 'CustomerPass123!')}
                     className="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 flex items-center justify-between"
                   >
                     <div>
-                      <div className="font-semibold text-slate-800">Lakshmi (Customer)</div>
-                      <div className="text-[10px] text-slate-500">Book Fan Repair & Live Track</div>
+                      <div className="font-semibold text-slate-800">Priya (Customer)</div>
+                      <div className="text-[10px] text-slate-500">Service Booking & Tracking</div>
                     </div>
                     <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">CUSTOMER</span>
                   </button>
 
                   <button
-                    onClick={() => handleQuickLogin('raj@example.com', 'Password123!')}
+                    onClick={() => handleQuickLogin('ramesh.electrician@taskunity.org', 'WorkerPass123!')}
                     className="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 flex items-center justify-between"
                   >
                     <div>
-                      <div className="font-semibold text-slate-800">Raj Kumar (Electrician)</div>
-                      <div className="text-[10px] text-slate-500">Verified Worker (10% Contrib)</div>
+                      <div className="font-semibold text-slate-800">Ramesh (Electrician)</div>
+                      <div className="text-[10px] text-slate-500">Verified Worker (Active)</div>
                     </div>
                     <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded">WORKER</span>
                   </button>
 
                   <button
-                    onClick={() => handleQuickLogin('suresh@example.com', 'Password123!')}
+                    onClick={() => handleQuickLogin('suresh.plumber@taskunity.org', 'WorkerPass123!')}
                     className="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 flex items-center justify-between"
                   >
                     <div>
-                      <div className="font-semibold text-slate-800">Suresh Verma (Worker)</div>
-                      <div className="text-[10px] text-slate-500">Incomplete Onboarding Resume Test</div>
+                      <div className="font-semibold text-slate-800">Suresh (Plumber)</div>
+                      <div className="text-[10px] text-slate-500">Incomplete Onboarding Resume</div>
                     </div>
                     <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">RESUME</span>
                   </button>
@@ -109,7 +105,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenNotifications: _onOpenNoti
                   >
                     <div>
                       <div className="font-semibold text-slate-800">Administrator</div>
-                      <div className="text-[10px] text-slate-500">Verification & AI Forecasting</div>
+                      <div className="text-[10px] text-slate-500">Verifications & Claims</div>
                     </div>
                     <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">ADMIN</span>
                   </button>
@@ -117,41 +113,36 @@ export const Header: React.FC<HeaderProps> = ({ onOpenNotifications: _onOpenNoti
               )}
             </div>
 
-            {/* Language Switcher */}
+            {/* 7-Language Switcher */}
             <div className="relative">
               <button
                 type="button"
                 onClick={() => setShowLangMenu(!showLangMenu)}
                 className="p-2 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100 flex items-center text-xs font-semibold transition"
-                title="Switch Language (English / हिन्दी / தமிழ்)"
+                title="Switch Language (7 Supported Languages)"
               >
                 <Globe className="w-4 h-4 mr-1 text-coop-600" />
                 <span className="uppercase">{language}</span>
               </button>
 
               {showLangMenu && (
-                <div className="absolute right-0 mt-2 w-36 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50">
-                  <button
-                    onClick={() => { setLanguage('en'); setShowLangMenu(false); }}
-                    className={`w-full text-left px-3 py-1.5 text-xs flex items-center justify-between hover:bg-slate-50 ${language === 'en' ? 'font-bold text-coop-700 bg-coop-50' : 'text-slate-700'}`}
-                  >
-                    <span>English</span>
-                    {language === 'en' && '✓'}
-                  </button>
-                  <button
-                    onClick={() => { setLanguage('hi'); setShowLangMenu(false); }}
-                    className={`w-full text-left px-3 py-1.5 text-xs flex items-center justify-between hover:bg-slate-50 ${language === 'hi' ? 'font-bold text-coop-700 bg-coop-50' : 'text-slate-700'}`}
-                  >
-                    <span>हिन्दी</span>
-                    {language === 'hi' && '✓'}
-                  </button>
-                  <button
-                    onClick={() => { setLanguage('ta'); setShowLangMenu(false); }}
-                    className={`w-full text-left px-3 py-1.5 text-xs flex items-center justify-between hover:bg-slate-50 ${language === 'ta' ? 'font-bold text-coop-700 bg-coop-50' : 'text-slate-700'}`}
-                  >
-                    <span>தமிழ்</span>
-                    {language === 'ta' && '✓'}
-                  </button>
+                <div className="absolute right-0 mt-2 w-44 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50">
+                  {SUPPORTED_LANGUAGES.map((langOpt) => (
+                    <button
+                      key={langOpt.code}
+                      onClick={() => {
+                        setLanguage(langOpt.code);
+                        setShowLangMenu(false);
+                      }}
+                      className={`w-full text-left px-3 py-1.5 text-xs flex items-center justify-between hover:bg-slate-50 ${
+                        language === langOpt.code ? 'font-bold text-coop-700 bg-coop-50' : 'text-slate-700'
+                      }`}
+                    >
+                      <span className="font-medium">{langOpt.nativeLabel}</span>
+                      <span className="text-[10px] text-slate-400 uppercase">({langOpt.code})</span>
+                      {language === langOpt.code && <span className="text-coop-600 font-bold ml-1">✓</span>}
+                    </button>
+                  ))}
                 </div>
               )}
             </div>

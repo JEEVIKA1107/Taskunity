@@ -300,6 +300,15 @@ export async function login(req: Request, res: Response): Promise<void> {
       return;
     }
 
+    const expectedRole = (req.body.expectedRole || req.body.role)?.toString().toUpperCase().trim();
+    if (expectedRole && user.role !== expectedRole) {
+      res.status(403).json({
+        success: false,
+        message: `Access denied. You cannot authenticate as ${expectedRole} with a ${user.role} account.`
+      });
+      return;
+    }
+
     if (user.account_status === 'SUSPENDED') {
       res.status(403).json({ success: false, message: 'This account has been suspended by the cooperative administrator.' });
       return;

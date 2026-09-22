@@ -6,7 +6,7 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   isLoading: boolean;
-  login: (email: string, pass: string) => Promise<User>;
+  login: (email: string, pass: string, expectedRole?: string) => Promise<User>;
   registerCustomer: (data: any) => Promise<User>;
   registerWorker: (data: any) => Promise<User>;
   logout: () => void;
@@ -59,8 +59,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     refreshUser();
   }, []);
 
-  const login = async (email: string, pass: string): Promise<User> => {
-    const res = await apiRequest('/auth/login', 'POST', { email, password: pass });
+  const login = async (email: string, pass: string, expectedRole?: string): Promise<User> => {
+    const res = await apiRequest('/auth/login', 'POST', { email, password: pass, expectedRole });
     if (res.success && res.token && res.user) {
       localStorage.setItem('task_unity_token', res.token);
       setToken(res.token);

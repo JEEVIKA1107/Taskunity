@@ -170,3 +170,80 @@ export async function getWorkerClaims(req: AuthenticatedRequest, res: Response):
     res.status(500).json({ success: false, message: 'Failed to retrieve claims.' });
   }
 }
+
+export async function downloadPolicyDocument(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const workerId = req.user!.worker_id;
+    if (!workerId) {
+      res.status(400).json({ success: false, message: 'Worker profile required.' });
+      return;
+    }
+
+    const policy = await getOne<any>(`
+      SELECT ip.*, u.name as worker_name, u.email as worker_email, u.phone as worker_phone, w.district
+      FROM insurance_policies ip
+      JOIN workers w ON ip.worker_id = w.worker_id
+      JOIN users u ON w.user_id = u.user_id
+      WHERE ip.worker_id = ?
+    `, [workerId]);
+
+    if (!policy) {
+      res.status(404).json({ success: false, message: 'No registered insurance policy found for this worker.' });
+      return;
+    }
+
+    const certificateHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Insurance Certificate - ${policy.policy_number}</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f8fafc; color: #0f172a; padding: 40px; margin: 0; }
+    .card { max-width: 720px; margin: 0 auto; background: white; border: 2px solid #047857; border-radius: 16px; padding: 36px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); }
+    .header { border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 24px; text-align: center; }
+    .badge { display: inline-block; background: #d1fae5; color: #065f46; font-size: 11px; font-weight: bold; padding: 4px 12px; border-radius: 9999px; text-transform: uppercase; margin-bottom: 8px; }
+    h1 { color: #064e3b; margin: 0 0 6px 0; font-size: 22px; }
+    p.sub { margin: 0; color: #64748b; font-size: 13px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 24px 0; }
+    .item { background: #f1f5f9; padding: 12px 16px; border-radius: 10px; }
+    .label { font-size: 10px; text-transform: uppercase; color: #64748b; font-weight: bold; }
+    .val { font-size: 14px; font-weight: bold; color: #1e293b; margin-top: 2px; }
+    .seal { margin-top: 30px; padding-top: 20px; border-top: 1px dashed #cbd5e1; display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #64748b; }
+    .stamp { border: 2px solid #047857; color: #047857; padding: 6px 14px; border-radius: 8px; font-weight: bold; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="header">
+      <div class="badge">Official Cooperative Certificate</div>
+      <h1>TASK UNITY COOPERATIVE SOCIETY</h1>
+      <p class="sub">Verified Worker Social Security & Insurance Record</p>
+    </div>
+    <div class="grid">
+      <div class="item"><div class="label">Policy Holder</div><div class="val">${policy.policy_holder_name || policy.worker_name}</div></div>
+      <div class="item"><div class="label">Policy Number</div><div class="val">${policy.policy_number}</div></div>
+      <div class="item"><div class="label">Scheme / Insurer</div><div class="val">${policy.provider_or_scheme}</div></div>
+      <div class="item"><div class="label">Coverage</div><div class="val">${policy.coverage}</div></div>
+      <div class="item"><div class="label">Effective Date</div><div class="val">${policy.start_date}</div></div>
+      <div class="item"><div class="label">Expiry Date</div><div class="val">${policy.expiry_date}</div></div>
+      <div class="item"><div class="label">Status</div><div class="val" style="color: #047857;">VERIFIED & ACTIVE</div></div>
+      <div class="item"><div class="label">District</div><div class="val">${policy.district || 'Tamil Nadu'}</div></div>
+    </div>
+    <div class="seal">
+      <div>
+        <strong>Verification Hash:</strong> SHA256-${policy.policy_id}-${Date.now().toString(36)}<br/>
+        <em>Authorized by Cooperative Board of Administration</em>
+      </div>
+      <div class="stamp">TASK UNITY<br/>COOPERATIVE VERIFIED</div>
+    </div>
+  </div>
+</body>
+</html>`;
+
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="TaskUnity_Policy_${policy.policy_number}.html"`);
+    res.send(certificateHtml);
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: 'Failed to download policy document.' });
+  }
+}

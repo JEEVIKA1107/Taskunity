@@ -16,6 +16,8 @@ import {
   Info
 } from 'lucide-react';
 import { Skill, InsuranceScheme } from '../../types';
+import { useLanguage } from '../../context/LanguageContext';
+import { TextToSpeechButton } from '../common/TextToSpeechButton';
 
 interface WorkerOnboardingProps {
   onOnboardingComplete?: () => void;
@@ -23,6 +25,7 @@ interface WorkerOnboardingProps {
 
 export const WorkerOnboarding: React.FC<WorkerOnboardingProps> = ({ onOnboardingComplete }) => {
   const { user } = useAuth();
+  const { t } = useLanguage();
 
   const [currentStep, setCurrentStep] = useState<string>('BASIC_PROFILE');
   const [isLoading, setIsLoading] = useState(true);
@@ -41,7 +44,7 @@ export const WorkerOnboarding: React.FC<WorkerOnboardingProps> = ({ onOnboarding
   const [address, setAddress] = useState('24 Gandhipuram Cross Road');
   const [district, setDistrict] = useState('Coimbatore');
   const [state, setState] = useState('Tamil Nadu');
-  const [primarySkillId, setPrimarySkillId] = useState('sk-elec');
+  const [primarySkillId, setPrimarySkillId] = useState('');
   const [secondarySkills] = useState<string[]>(['Technician']);
   const [yearsExperience, setYearsExperience] = useState(4);
   const [preferredWorkingArea, setPreferredWorkingArea] = useState('Coimbatore City');
@@ -426,8 +429,13 @@ export const WorkerOnboarding: React.FC<WorkerOnboardingProps> = ({ onOnboarding
       {/* STEP 1: Basic Profile */}
       {currentStep === 'BASIC_PROFILE' && (
         <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-200">
-          <h2 className="text-lg font-bold text-slate-900 mb-1">Worker Basic Profile</h2>
-          <p className="text-xs text-slate-500 mb-6">Enter your trade experience and contact details.</p>
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <h2 className="text-lg font-bold text-slate-900 mb-1">{t('basic_profile')}</h2>
+              <p className="text-xs text-slate-500">Enter your trade experience and contact details.</p>
+            </div>
+            <TextToSpeechButton text="Please fill your worker basic profile. Select your primary trade skill, years of experience, date of birth, gender, and service district." />
+          </div>
 
           <form onSubmit={handleSubmitBasicProfile} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -445,6 +453,7 @@ export const WorkerOnboarding: React.FC<WorkerOnboardingProps> = ({ onOnboarding
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-coop-500 text-sm outline-none bg-white"
                   required
                 >
+                  <option value="">-- Select Primary Skill --</option>
                   {skills.map((s) => (
                     <option key={s.skill_id} value={s.skill_id}>
                       {s.name} ({s.category})

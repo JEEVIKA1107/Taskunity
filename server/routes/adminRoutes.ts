@@ -12,7 +12,8 @@ import {
   getAiDemandForecasting,
   getAiWorkforceAllocation,
   getAuditLogs,
-  updateClaimStatus
+  updateClaimStatus,
+  getAdminClaims
 } from '../controllers/adminController';
 import { authenticateToken, requireAdmin } from '../middleware/auth';
 
@@ -49,6 +50,8 @@ router.post('/verify/cooperative-approval/:workerId', cooperativeApproval);
 
 router.post('/contribution-rate', updateContributionRate);
 router.post('/insurance/contribution-rate', updateContributionRate);
+router.get('/claims', getAdminClaims);
 router.patch('/claims/:claimId/status', updateClaimStatus);
+router.post('/claims/:claimId/status', updateClaimStatus);
 
 export default router;

@@ -27,22 +27,33 @@ export const WorkerDashboard: React.FC<WorkerDashboardProps> = ({ onNavigate: _o
   const [isAvailable, setIsAvailable] = useState<boolean>(true);
   const [jobs, setJobs] = useState<any[]>([]);
   const [activeBooking, setActiveBooking] = useState<any>(null);
+  const [workerProfile, setWorkerProfile] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [statusUpdating, setStatusUpdating] = useState(false);
   const [actionSuccess, setActionSuccess] = useState('');
 
-  // Worker coordinates (Coimbatore demo: 11.0168, 76.9558)
+  // Worker coordinates (Coimbatore default fallback)
   const [workerLat, setWorkerLat] = useState(11.0168);
   const [workerLng, setWorkerLng] = useState(76.9558);
 
   const loadWorkerData = async () => {
     try {
       setIsLoading(true);
-      const res = await apiRequest('/bookings/my-bookings');
-      if (res.success && res.bookings) {
-        setJobs(res.bookings);
-        // Find active job if any
-        const active = res.bookings.find((b: any) =>
+      const [resDashboard, resBookings] = await Promise.all([
+        apiRequest('/worker/dashboard'),
+        apiRequest('/bookings/my-bookings')
+      ]);
+
+      if (resDashboard.success && resDashboard.worker) {
+        setWorkerProfile(resDashboard.worker);
+        setIsAvailable(resDashboard.worker.is_available === 1 || resDashboard.worker.is_available === true);
+        if (resDashboard.worker.latitude) setWorkerLat(Number(resDashboard.worker.latitude));
+        if (resDashboard.worker.longitude) setWorkerLng(Number(resDashboard.worker.longitude));
+      }
+
+      if (resBookings.success && resBookings.bookings) {
+        setJobs(resBookings.bookings);
+        const active = resBookings.bookings.find((b: any) =>
           ['REQUESTED', 'ACCEPTED', 'WORKER_TRAVELLING', 'ARRIVED', 'SERVICE_IN_PROGRESS'].includes(b.status)
         );
         setActiveBooking(active || null);
@@ -65,6 +76,7 @@ export const WorkerDashboard: React.FC<WorkerDashboardProps> = ({ onNavigate: _o
         isAvailable: newVal,
         locationSharingEnabled: true
       });
+      setActionSuccess(newVal ? 'Status updated to 🟢 AVAILABLE' : 'Status updated to ⚫ OFFLINE');
     } catch (err: any) {
       alert('Failed to toggle availability: ' + err.message);
     }
@@ -107,6 +119,10 @@ export const WorkerDashboard: React.FC<WorkerDashboardProps> = ({ onNavigate: _o
     }
   };
 
+  const completedJobs = jobs.filter(j => j.status === 'COMPLETED');
+  const totalEarnings = completedJobs.reduce((acc, j) => acc + (j.net_earnings || (j.total_amount ? j.total_amount * 0.9 : 0)), 0);
+  const jobsCount = workerProfile?.jobs_completed !== undefined ? workerProfile.jobs_completed : completedJobs.length;
+
   if (isLoading) {
     return (
       <div className="max-w-5xl mx-auto px-4 py-16 text-center text-xs text-slate-400">
@@ -123,7 +139,7 @@ export const WorkerDashboard: React.FC<WorkerDashboardProps> = ({ onNavigate: _o
           <div>
             <div className="flex items-center space-x-2">
               <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                {t('good_morning')}, {user?.name || 'Raj Kumar'}
+                {t('good_morning')}, {workerProfile?.name || user?.name || 'Verified Worker'}
               </span>
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-800 border border-green-300">
                 <ShieldCheck className="w-3.5 h-3.5 mr-1" />
@@ -131,14 +147,14 @@ export const WorkerDashboard: React.FC<WorkerDashboardProps> = ({ onNavigate: _o
               </span>
             </div>
             <div className="flex items-center space-x-3 mt-1.5 text-xs text-slate-500 font-medium">
-              <span className="font-bold text-slate-800">Electrician</span>
+              <span className="font-bold text-slate-800">{workerProfile?.skill_name || 'Skilled Professional'}</span>
               <span>•</span>
               <span className="flex items-center text-amber-500 font-bold">
                 <Star className="w-3.5 h-3.5 fill-amber-400 mr-1" />
-                4.8 Rating
+                {workerProfile?.rating ? `${Number(workerProfile.rating).toFixed(1)} Rating` : '5.0 Rating'}
               </span>
               <span>•</span>
-              <span>Coimbatore Cooperative Member</span>
+              <span>{workerProfile?.district || 'Tamil Nadu'} Cooperative Member</span>
             </div>
           </div>
 
@@ -146,11 +162,11 @@ export const WorkerDashboard: React.FC<WorkerDashboardProps> = ({ onNavigate: _o
           <div className="flex space-x-3 w-full md:w-auto">
             <div className="flex-1 md:flex-initial p-3 bg-coop-50 rounded-2xl border border-coop-200 text-center min-w-[110px]">
               <div className="text-[10px] font-bold text-coop-800 uppercase">{t('todays_earnings')}</div>
-              <div className="text-base font-black text-coop-950">₹1,250</div>
+              <div className="text-base font-black text-coop-950">₹{totalEarnings.toLocaleString()}</div>
             </div>
             <div className="flex-1 md:flex-initial p-3 bg-slate-50 rounded-2xl border border-slate-200 text-center min-w-[100px]">
               <div className="text-[10px] font-bold text-slate-500 uppercase">{t('todays_jobs')}</div>
-              <div className="text-base font-black text-slate-900">4</div>
+              <div className="text-base font-black text-slate-900">{jobsCount}</div>
             </div>
           </div>
         </div>
@@ -161,21 +177,36 @@ export const WorkerDashboard: React.FC<WorkerDashboardProps> = ({ onNavigate: _o
             <div className="flex items-center">
               <span className={`w-3 h-3 rounded-full mr-2 ${isAvailable ? 'bg-green-500 animate-ping' : 'bg-slate-400'}`} />
               <span className="text-xs font-bold text-slate-900">
-                {t('work_status')}: {isAvailable ? '🟢 AVAILABLE' : 'OFFLINE'}
+                {t('work_status')}: {isAvailable ? '🟢 AVAILABLE' : '⚫ OFFLINE'}
               </span>
             </div>
 
-            <button
-              type="button"
-              onClick={() => handleToggleAvailability(!isAvailable)}
-              className={`px-3 py-1.5 rounded-xl font-bold text-xs shadow-sm transition ${
-                isAvailable
-                  ? 'bg-red-50 text-red-700 border border-red-200 hover:bg-red-100'
-                  : 'bg-coop-600 text-white hover:bg-coop-700'
-              }`}
-            >
-              {isAvailable ? t('go_offline') : t('go_available')}
-            </button>
+            <div className="flex items-center space-x-2">
+              <button
+                type="button"
+                onClick={() => handleToggleAvailability(true)}
+                disabled={isAvailable}
+                className={`px-3 py-1.5 rounded-xl font-bold text-xs shadow-sm transition ${
+                  isAvailable
+                    ? 'bg-green-600 text-white cursor-default'
+                    : 'bg-green-100 text-green-800 hover:bg-green-200'
+                }`}
+              >
+                [ GO AVAILABLE ]
+              </button>
+              <button
+                type="button"
+                onClick={() => handleToggleAvailability(false)}
+                disabled={!isAvailable}
+                className={`px-3 py-1.5 rounded-xl font-bold text-xs shadow-sm transition ${
+                  !isAvailable
+                    ? 'bg-slate-800 text-white cursor-default'
+                    : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                }`}
+              >
+                [ GO OFFLINE ]
+              </button>
+            </div>
           </div>
 
           {/* Verification Badges */}
@@ -366,7 +397,9 @@ export const WorkerDashboard: React.FC<WorkerDashboardProps> = ({ onNavigate: _o
               workerLng={workerLng}
               customerLat={activeBooking?.customer_lat}
               customerLng={activeBooking?.customer_lng}
-              statusText={activeBooking?.status || 'AVAILABLE'}
+              workerName={`${workerProfile?.name || user?.name || 'Verified Worker'} (${workerProfile?.skill_name || 'Skilled Professional'})`}
+              customerAddress={activeBooking?.customer_address || 'Customer Location'}
+              statusText={activeBooking?.status || (isAvailable ? 'AVAILABLE' : 'OFFLINE')}
               etaMinutes={activeBooking?.status === 'ARRIVED' ? 0 : 12}
               height="300px"
             />
@@ -422,19 +455,19 @@ export const WorkerDashboard: React.FC<WorkerDashboardProps> = ({ onNavigate: _o
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200 text-xs space-y-1">
               <div className="text-slate-400 font-bold uppercase text-[10px]">Gross Earnings</div>
-              <div className="text-2xl font-black text-slate-900">₹45,000</div>
-              <div className="text-[11px] text-slate-500 pt-1">Total completed jobs revenue</div>
+              <div className="text-2xl font-black text-slate-900">₹{(completedJobs.reduce((acc, j) => acc + (j.total_amount || 0), 0) || Math.round(totalEarnings / 0.9)).toLocaleString()}</div>
+              <div className="text-[11px] text-slate-500 pt-1">Total completed jobs revenue ({completedJobs.length} jobs)</div>
             </div>
 
             <div className="p-5 bg-purple-50 rounded-2xl border border-purple-200 text-xs space-y-1">
               <div className="text-purple-700 font-bold uppercase text-[10px]">Insurance Contribution (10%)</div>
-              <div className="text-2xl font-black text-purple-900">₹2,200</div>
+              <div className="text-2xl font-black text-purple-900">₹{(completedJobs.reduce((acc, j) => acc + (j.insurance_contribution || 0), 0) || Math.round(totalEarnings * 0.1)).toLocaleString()}</div>
               <div className="text-[11px] text-purple-700 pt-1">Credited to Insurance Fund Ledger</div>
             </div>
 
             <div className="p-5 bg-green-50 rounded-2xl border border-green-200 text-xs space-y-1">
               <div className="text-green-800 font-bold uppercase text-[10px]">Net Eligible Earnings</div>
-              <div className="text-2xl font-black text-green-950">₹42,800</div>
+              <div className="text-2xl font-black text-green-950">₹{totalEarnings.toLocaleString()}</div>
               <div className="text-[11px] text-green-700 pt-1">Directly payable to worker</div>
             </div>
           </div>

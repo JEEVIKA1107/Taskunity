@@ -405,6 +405,7 @@ export async function initDatabase(): Promise<void> {
 
   await execScript(schemaSql);
   await seedInitialData();
+  await syncAdditionalData();
 }
 
 async function seedInitialData(): Promise<void> {
@@ -711,3 +712,294 @@ async function seedInitialData(): Promise<void> {
   saveDb();
   console.log('Task Unity database initialized and seeded successfully.');
 }
+
+async function syncAdditionalData(): Promise<void> {
+  const now = new Date().toISOString();
+  const passwordHash = await bcrypt.hash('Password123!', 10);
+
+  // 1. All 15 Trade Skills
+  const allSkills = [
+    { id: 'sk-elec', name: 'Electrician', category: 'Electrical', icon: 'Zap' },
+    { id: 'sk-plumb', name: 'Plumber', category: 'Plumbing', icon: 'Wrench' },
+    { id: 'sk-paint', name: 'Painter', category: 'Finishing', icon: 'Paintbrush' },
+    { id: 'sk-carp', name: 'Carpenter', category: 'Woodwork', icon: 'Hammer' },
+    { id: 'sk-clean', name: 'Cleaner', category: 'Sanitation', icon: 'Sparkles' },
+    { id: 'sk-gard', name: 'Gardener', category: 'Landscaping', icon: 'Flower' },
+    { id: 'sk-driv', name: 'Driver', category: 'Transportation', icon: 'Car' },
+    { id: 'sk-care', name: 'Caregiver', category: 'Healthcare', icon: 'HeartHandshake' },
+    { id: 'sk-tech', name: 'Technician', category: 'Appliance Repair', icon: 'Cpu' },
+    { id: 'sk-masn', name: 'Mason', category: 'Construction', icon: 'Layers' },
+    { id: 'sk-appl', name: 'Appliance Repair', category: 'Appliance Repair', icon: 'Tv' },
+    { id: 'sk-actech', name: 'AC Technician', category: 'HVAC', icon: 'Wind' },
+    { id: 'sk-weld', name: 'Welding', category: 'Metalwork', icon: 'Flame' },
+    { id: 'sk-cnst', name: 'Construction Worker', category: 'Construction', icon: 'HardHat' },
+    { id: 'sk-oth', name: 'Other Skilled Worker', category: 'General', icon: 'Briefcase' }
+  ];
+
+  for (const s of allSkills) {
+    await runQuery(`
+      INSERT OR IGNORE INTO skills (skill_id, name, category, icon, description, active)
+      VALUES (?, ?, ?, ?, ?, 1)
+    `, [s.id, s.name, s.category, s.icon, `Certified professional ${s.name} services under Task Unity cooperative`]);
+  }
+
+  // 2. Multi-Service Offerings
+  const allServices = [
+    { id: 'srv-1', skill_id: 'sk-elec', name: 'Ceiling Fan Repair & Installation', price: 450, desc: 'Complete wiring, motor, and blade balancing' },
+    { id: 'srv-2', skill_id: 'sk-elec', name: 'Switchboard & Circuit Repair', price: 350, desc: 'MCB testing, switch replacement, short circuit fix' },
+    { id: 'srv-3', skill_id: 'sk-elec', name: 'Full House Electrical Inspection', price: 1000, desc: 'Safety audit, grounding verification, wiring load check' },
+    { id: 'srv-4', skill_id: 'sk-plumb', name: 'Pipe Leakage & Tap Repair', price: 400, desc: 'Quick leak sealing, tap replacement, pipe joining' },
+    { id: 'srv-5', skill_id: 'sk-plumb', name: 'Water Motor & Tank Installation', price: 1200, desc: 'Submersible pump wiring and pipe connection' },
+    { id: 'srv-6', skill_id: 'sk-paint', name: 'Interior Wall Painting', price: 2500, desc: 'Primer, putty, and double coat emulsion' },
+    { id: 'srv-7', skill_id: 'sk-carp', name: 'Door & Lock Fitting', price: 600, desc: 'Mortise lock installation and alignment' },
+    { id: 'srv-8', skill_id: 'sk-clean', name: 'Deep Home Sanitization', price: 1500, desc: 'High-pressure bathroom and kitchen cleaning' },
+    { id: 'srv-9', skill_id: 'sk-gard', name: 'Lawn Mowing & Garden Maintenance', price: 600, desc: 'Lawn trimming, weeding, pruning, and organic fertilizing' },
+    { id: 'srv-10', skill_id: 'sk-driv', name: 'Personal Driver & Chauffeur (Daily)', price: 800, desc: 'Experienced personal city and highway driving service' },
+    { id: 'srv-11', skill_id: 'sk-care', name: 'Elder Care & Patient Attendant', price: 900, desc: 'Daily medication assistance, mobility support, and companionship' },
+    { id: 'srv-12', skill_id: 'sk-tech', name: 'Smart Home & Electronic Diagnosis', price: 500, desc: 'Appliance installation, WiFi setup, and diagnostic check' },
+    { id: 'srv-13', skill_id: 'sk-masn', name: 'Brickwork & Concrete Masonry', price: 1100, desc: 'Wall plastering, tiling, and structural brickwork repair' },
+    { id: 'srv-14', skill_id: 'sk-actech', name: 'AC Servicing & Gas Refill', price: 750, desc: 'Deep split/window AC coil wash and gas pressure check' },
+    { id: 'srv-15', skill_id: 'sk-weld', name: 'Metal Gate & Grill Welding', price: 850, desc: 'Arc welding, gate alignment, and latch fixing' },
+    { id: 'srv-16', skill_id: 'sk-appl', name: 'Washing Machine & Refrigerator Repair', price: 650, desc: 'Drum repair, thermostat replacement, and PCB diagnosis' },
+    { id: 'srv-17', skill_id: 'sk-cnst', name: 'Civil Construction & Renovation Work', price: 1400, desc: 'Demolition, civil repairs, and concrete patching' },
+    { id: 'srv-18', skill_id: 'sk-oth', name: 'General Skilled Utility Services', price: 500, desc: 'Custom handyman and cooperative multi-utility tasks' }
+  ];
+
+  for (const srv of allServices) {
+    await runQuery(`
+      INSERT OR IGNORE INTO services (service_id, name, skill_id, base_price, description, icon)
+      VALUES (?, ?, ?, ?, ?, 'Tool')
+    `, [srv.id, srv.name, srv.skill_id, srv.price, srv.desc]);
+  }
+
+  // 3. Geographically Distributed Verified Demo Workers (Coimbatore, Salem, Tiruppur, Erode)
+  const demoWorkers = [
+    {
+      userId: 'usr-work-4',
+      workerId: 'wrk-4',
+      name: 'Murugan S',
+      email: 'murugan@example.com',
+      phone: '+91 94432 55667',
+      skillId: 'sk-plumb',
+      skillName: 'Plumber',
+      experience: 6,
+      district: 'Coimbatore',
+      address: '56 Gandhipuram 2nd Cross, Coimbatore',
+      lat: 11.0210,
+      lng: 76.9680,
+      rating: 4.9,
+      jobs: 14
+    },
+    {
+      userId: 'usr-work-5',
+      workerId: 'wrk-5',
+      name: 'Anitha R',
+      email: 'anitha@example.com',
+      phone: '+91 94432 66778',
+      skillId: 'sk-clean',
+      skillName: 'Cleaner',
+      experience: 4,
+      district: 'Coimbatore',
+      address: '12 RS Puram West, Coimbatore',
+      lat: 11.0080,
+      lng: 76.9450,
+      rating: 4.7,
+      jobs: 9
+    },
+    {
+      userId: 'usr-work-6',
+      workerId: 'wrk-6',
+      name: 'Selvam K',
+      email: 'selvam@example.com',
+      phone: '+91 94432 77889',
+      skillId: 'sk-paint',
+      skillName: 'Painter',
+      experience: 7,
+      district: 'Tiruppur',
+      address: '88 Avinashi Road, Tiruppur',
+      lat: 11.1085,
+      lng: 77.3411,
+      rating: 4.8,
+      jobs: 18
+    },
+    {
+      userId: 'usr-work-7',
+      workerId: 'wrk-7',
+      name: 'Karthik M',
+      email: 'karthik@example.com',
+      phone: '+91 94432 88990',
+      skillId: 'sk-actech',
+      skillName: 'AC Technician',
+      experience: 5,
+      district: 'Salem',
+      address: '23 Cherry Road, Salem',
+      lat: 11.6643,
+      lng: 78.1460,
+      rating: 4.9,
+      jobs: 11
+    },
+    {
+      userId: 'usr-work-8',
+      workerId: 'wrk-8',
+      name: 'Velu P',
+      email: 'velu@example.com',
+      phone: '+91 94432 99001',
+      skillId: 'sk-gard',
+      skillName: 'Gardener',
+      experience: 8,
+      district: 'Erode',
+      address: '45 Perundurai Road, Erode',
+      lat: 11.3410,
+      lng: 77.7172,
+      rating: 4.8,
+      jobs: 15
+    },
+    {
+      userId: 'usr-work-9',
+      workerId: 'wrk-9',
+      name: 'Priya S',
+      email: 'priya@example.com',
+      phone: '+91 94432 10112',
+      skillId: 'sk-care',
+      skillName: 'Caregiver',
+      experience: 5,
+      district: 'Coimbatore',
+      address: '31 Peelamedu, Coimbatore',
+      lat: 11.0250,
+      lng: 76.9500,
+      rating: 5.0,
+      jobs: 7
+    },
+    {
+      userId: 'usr-work-10',
+      workerId: 'wrk-10',
+      name: 'Manikandan T',
+      email: 'manikandan@example.com',
+      phone: '+91 94432 12134',
+      skillId: 'sk-driv',
+      skillName: 'Driver',
+      experience: 9,
+      district: 'Tiruppur',
+      address: '19 Kangeyam Road, Tiruppur',
+      lat: 11.1120,
+      lng: 77.3500,
+      rating: 4.9,
+      jobs: 22
+    },
+    {
+      userId: 'usr-work-11',
+      workerId: 'wrk-11',
+      name: 'Durai K',
+      email: 'durai@example.com',
+      phone: '+91 94432 14156',
+      skillId: 'sk-masn',
+      skillName: 'Mason',
+      experience: 10,
+      district: 'Salem',
+      address: '61 Suramangalam Main Road, Salem',
+      lat: 11.6580,
+      lng: 78.1520,
+      rating: 4.8,
+      jobs: 25
+    },
+    {
+      userId: 'usr-work-12',
+      workerId: 'wrk-12',
+      name: 'Mohan R',
+      email: 'mohan@example.com',
+      phone: '+91 94432 16178',
+      skillId: 'sk-weld',
+      skillName: 'Welding',
+      experience: 6,
+      district: 'Erode',
+      address: '77 Bhavani Road, Erode',
+      lat: 11.3390,
+      lng: 77.7210,
+      rating: 4.7,
+      jobs: 13
+    }
+  ];
+
+  for (const w of demoWorkers) {
+    const existing = await getOne(`SELECT user_id FROM users WHERE email = ?`, [w.email]);
+    if (!existing) {
+      await runQuery(`
+        INSERT INTO users (user_id, role, name, email, phone, password_hash, language, account_status, created_at, updated_at, last_login)
+        VALUES (?, 'WORKER', ?, ?, ?, ?, 'en', 'ACTIVE', ?, ?, ?)
+      `, [w.userId, w.name, w.email, w.phone, passwordHash, now, now, now]);
+
+      await runQuery(`
+        INSERT INTO workers (worker_id, user_id, onboarding_status, dob, gender, address, district, state, profile_photo, primary_skill_id, secondary_skills, years_experience, preferred_working_area, rating, jobs_completed, insurance_contribution_enabled, created_at, updated_at)
+        VALUES (?, ?, 'ACTIVE', '1990-05-15', 'Male', ?, ?, 'Tamil Nadu', '', ?, '[]', ?, ?, ?, ?, 1, ?, ?)
+      `, [w.workerId, w.userId, w.address, w.district, w.skillId, w.experience, `${w.district} Central & Suburbs`, w.rating, w.jobs, now, now]);
+
+      await runQuery(`
+        INSERT OR IGNORE INTO worker_skills (id, worker_id, skill_id, is_primary, years_experience)
+        VALUES (?, ?, ?, 1, ?)
+      `, [`ws-${w.workerId}`, w.workerId, w.skillId, w.experience]);
+
+      await runQuery(`
+        INSERT OR IGNORE INTO worker_availability (availability_id, worker_id, is_available, location_sharing_enabled, last_status_change)
+        VALUES (?, ?, 1, 1, ?)
+      `, [`av-${w.workerId}`, w.workerId, now]);
+
+      await runQuery(`
+        INSERT OR IGNORE INTO worker_locations (location_id, worker_id, booking_id, latitude, longitude, heading, speed, location_state, updated_at)
+        VALUES (?, ?, NULL, ?, ?, 45, 0, 'AVAILABLE', ?)
+      `, [`loc-${w.workerId}`, w.workerId, w.lat, w.lng, now]);
+
+      await runQuery(`
+        INSERT OR IGNORE INTO eshram_records (eshram_id, worker_id, is_registered, eshram_number, holder_name, document_url, verification_status, verified_by, verified_at, created_at)
+        VALUES (?, ?, 1, ?, ?, '/uploads/docs/eshram_verified.pdf', 'VERIFIED', 'usr-admin', ?, ?)
+      `, [`esh-${w.workerId}`, w.workerId, `UAN-9440-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}`, w.name, now, now]);
+
+      await runQuery(`
+        INSERT OR IGNORE INTO certifications (certification_id, worker_id, primary_skill, certification_name, certificate_number, issuing_org, issue_date, expiry_date, document_url, verification_status, verified_by, verified_at, created_at)
+        VALUES (?, ?, ?, ?, ?, 'National Skill Development Corporation / ITI', '2022-01-10', '2032-01-09', '/uploads/docs/cert_verified.pdf', 'VERIFIED', 'usr-admin', ?, ?)
+      `, [`cert-${w.workerId}`, w.workerId, w.skillName, `NSDC Skill Level 4 - ${w.skillName}`, `NSDC-${w.workerId.toUpperCase()}-2022`, now, now]);
+
+      await runQuery(`
+        INSERT OR IGNORE INTO insurance_policies (policy_id, worker_id, provider_or_scheme, policy_number, policy_holder_name, coverage, start_date, expiry_date, document_url, verification_status, verified_by, verified_at, created_at, updated_at)
+        VALUES (?, ?, 'Task Unity / PMSBY Accidental Cover', ?, ?, '₹2,00,000 Accidental & Disability Cover', '2026-09-01', '2027-08-31', '/uploads/docs/policy_verified.pdf', 'VERIFIED', 'usr-admin', ?, ?, ?)
+      `, [`pol-${w.workerId}`, w.workerId, `POL-TU-${w.workerId.toUpperCase()}-2026`, w.name, now, now, now]);
+
+      await runQuery(`
+        INSERT OR IGNORE INTO consents (consent_id, user_id, entity_type, entity_id, consent_type, consent_version, accepted, accepted_at, ip_address_or_audit_reference, created_at, updated_at)
+        VALUES (?, ?, 'INSURANCE_POLICY', ?, 'INSURANCE_TERMS_AND_CONDITIONS', 'v1.0', 1, ?, '127.0.0.1 (Verification Sync)', ?, ?)
+      `, [`cns-${w.workerId}`, w.userId, `pol-${w.workerId}`, now, now, now]);
+    }
+  }
+
+  // 4. Multi-district AI Demand Forecast & Workforce Allocation
+  const regionalForecasts = [
+    { id: 'df-tp-1', district: 'Tiruppur', skill: 'Painter', period: 'Next 7 Days', level: 'High Demand', conf: 0.91, trend: '+22% vs Last Week', factors: '{"textile_hub_expansion": true, "factory_repaint_cycle": "Active"}' },
+    { id: 'df-tp-2', district: 'Tiruppur', skill: 'Driver', period: 'Next 7 Days', level: 'High Demand', conf: 0.89, trend: '+19% vs Last Week', factors: '{"garment_transport_surge": true}' },
+    { id: 'df-slm-1', district: 'Salem', skill: 'AC Technician', period: 'Next 7 Days', level: 'High Demand', conf: 0.93, trend: '+31% vs Last Week', factors: '{"heatwave_alert": "Active", "commercial_units": 48}' },
+    { id: 'df-slm-2', district: 'Salem', skill: 'Mason', period: 'Next 7 Days', level: 'Medium Demand', conf: 0.81, trend: '+8% vs Last Week', factors: '{"highway_expansion": true}' },
+    { id: 'df-erd-1', district: 'Erode', skill: 'Gardener', period: 'Next 7 Days', level: 'Medium Demand', conf: 0.85, trend: '+12% vs Last Week', factors: '{"agri_market_seasonal_greening": true}' },
+    { id: 'df-erd-2', district: 'Erode', skill: 'Plumber', period: 'Next 7 Days', level: 'High Demand', conf: 0.90, trend: '+20% vs Last Week', factors: '{"cauvery_water_grid_maintenance": true}' }
+  ];
+
+  for (const f of regionalForecasts) {
+    await runQuery(`
+      INSERT OR IGNORE INTO demand_forecast (forecast_id, district, skill_name, forecast_period, demand_level, confidence_score, historical_trend, factors_json, generated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [f.id, f.district, f.skill, f.period, f.level, f.conf, f.trend, f.factors, now]);
+  }
+
+  const regionalAllocations = [
+    { id: 'alc-tp-1', district: 'Tiruppur', skill: 'Painter', cur: 5, exp: 12, def: 7, action: 'Incentivize local cooperative painters with 15% festival surcharge bonus.' },
+    { id: 'alc-slm-1', district: 'Salem', skill: 'AC Technician', cur: 4, exp: 10, def: 6, action: 'Deploy mobile toolkits and alert certified cooling specialists across Salem North.' },
+    { id: 'alc-erd-1', district: 'Erode', skill: 'Plumber', cur: 6, exp: 11, def: 5, action: 'Mobilize regional cooperative plumbers from Bhavani and Perundurai clusters.' }
+  ];
+
+  for (const a of regionalAllocations) {
+    await runQuery(`
+      INSERT OR IGNORE INTO worker_allocation (allocation_id, district, skill_name, current_workers, expected_demand, deficit, suggested_action, status, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 'RECOMMENDED', ?)
+    `, [a.id, a.district, a.skill, a.cur, a.exp, a.def, a.action, now]);
+  }
+
+  saveDb();
+}
+

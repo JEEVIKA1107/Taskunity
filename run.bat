@@ -7,14 +7,7 @@ echo    TASK UNITY -- Cooperative Gig Platform
 echo ====================================================
 echo.
 
-:: Check if Task Unity is already running on port 5000
-netstat -ano | findstr /C:":5000" | findstr /C:"LISTENING" >nul 2>nul
-if %errorlevel% equ 0 (
-    echo [OK] Task Unity server is ALREADY RUNNING!
-    echo Opening http://localhost:5000 in your browser...
-    start http://localhost:5000
-    exit /b 0
-)
+
 
 :: Check for Node.js
 where node >nul 2>nul
@@ -59,14 +52,32 @@ if not exist "client\dist\" (
     )
 )
 
+:: Check if Task Unity is already running on port 5000
+netstat -ano | findstr /C:":5000" | findstr /C:"LISTENING" >nul 2>nul
+if %errorlevel% equ 0 (
+    echo [OK] Task Unity server is ALREADY ACTIVE on http://localhost:5000
+    echo Opening application in your default browser...
+    start http://localhost:5000
+    echo.
+    echo ====================================================
+    echo   Task Unity is running and ready for use!
+    echo   URL: http://localhost:5000
+    echo ====================================================
+    echo Keep this window open while using the application.
+    echo Press any key to close this launcher window.
+    echo.
+    pause
+    exit /b 0
+)
+
 echo.
 echo ====================================================
 echo  Starting TASK UNITY at http://localhost:5000
 echo ====================================================
 echo.
 
-:: Automatically open browser
-start http://localhost:5000
+:: Automatically open browser after short delay
+start "" powershell -WindowStyle Hidden -Command "Start-Sleep -Seconds 2; Start-Process 'http://localhost:5000'"
 
 :: Start the server
 call npm run server

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { apiRequest } from '../../services/api';
 import { X, Search, MapPin, Star, ShieldCheck, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Skill, Service } from '../../types';
+import { SpeechToTextInput } from '../common/SpeechToTextInput';
 
 interface BookingModalProps {
   initialSkillId?: string;
@@ -177,14 +178,20 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                Description & Site Notes
-              </label>
+              <div className="flex justify-between items-center mb-1">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Description & Site Notes
+                </label>
+                <SpeechToTextInput
+                  onTranscript={(spoken) => setDescription(prev => prev ? `${prev} ${spoken}` : spoken)}
+                  className="text-xs font-bold text-coop-700 bg-coop-50 hover:bg-coop-100 px-2 py-0.5 rounded-lg flex items-center space-x-1 border border-coop-200 transition"
+                />
+              </div>
               <textarea
                 rows={2}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Describe what needs to be fixed..."
+                placeholder="Describe what needs to be fixed (or tap microphone to speak)..."
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs outline-none"
               />
             </div>
@@ -261,47 +268,66 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               </button>
             </div>
 
-            <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
-              {matchedWorkers.map((wrk) => {
-                const isSelected = selectedWorkerId === wrk.worker_id;
-                return (
-                  <div
-                    key={wrk.worker_id}
-                    onClick={() => setSelectedWorkerId(wrk.worker_id)}
-                    className={`p-4 rounded-2xl border-2 cursor-pointer transition flex items-center justify-between ${
-                      isSelected
-                        ? 'border-coop-600 bg-coop-50/50 shadow-sm'
-                        : 'border-slate-200 hover:border-slate-300 bg-white'
-                    }`}
-                  >
-                    <div>
-                      <div className="flex items-center space-x-2">
-                        <span className="font-bold text-slate-900 text-sm">{wrk.name}</span>
-                        <span className="inline-flex items-center text-[10px] font-bold bg-green-100 text-green-800 px-1.5 py-0.5 rounded">
-                          <ShieldCheck className="w-3 h-3 mr-0.5" /> Verified
+            {matchedWorkers.length === 0 ? (
+              <div className="p-8 bg-slate-50 rounded-2xl border border-dashed border-slate-300 text-center text-xs text-slate-600 space-y-2">
+                <div className="text-2xl">👷</div>
+                <div className="font-bold text-slate-800 text-sm">No Available Workers Nearby</div>
+                <p className="text-slate-500 max-w-xs mx-auto">
+                  No verified workers for this service are currently active and available nearby. You can try a different category or check back in a few minutes.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="mt-3 px-4 py-2 bg-coop-600 hover:bg-coop-700 text-white font-bold rounded-xl text-xs"
+                >
+                  Change Service Category
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+                {matchedWorkers.map((wrk) => {
+                  const isSelected = selectedWorkerId === wrk.worker_id;
+                  return (
+                    <div
+                      key={wrk.worker_id}
+                      onClick={() => setSelectedWorkerId(wrk.worker_id)}
+                      className={`p-4 rounded-2xl border-2 cursor-pointer transition flex items-center justify-between ${
+                        isSelected
+                          ? 'border-coop-600 bg-coop-50/50 shadow-sm'
+                          : 'border-slate-200 hover:border-slate-300 bg-white'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <span className="font-bold text-slate-900 text-sm">{wrk.name}</span>
+                          <span className="inline-flex items-center text-[10px] font-bold bg-green-100 text-green-800 px-1.5 py-0.5 rounded">
+                            <ShieldCheck className="w-3 h-3 mr-0.5" /> Verified
+                          </span>
+                        </div>
+                        <div className="text-xs text-slate-500 mt-0.5">
+                          {wrk.skill_name || 'Skilled Worker'} • {wrk.years_experience || 3} yrs exp • {wrk.jobs_completed || 0} jobs
+                        </div>
+                        <div className="flex items-center space-x-1 text-amber-500 text-xs font-bold mt-1">
+                          <Star className="w-3.5 h-3.5 fill-amber-400" />
+                          <span>{wrk.rating ? Number(wrk.rating).toFixed(1) : '5.0'} Rating</span>
+                          <span className="text-slate-400 font-normal ml-2">
+                            ~{wrk.distance_km ? `${wrk.distance_km} km away` : 'Within area'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                          isSelected ? 'border-coop-600 bg-coop-600 text-white' : 'border-slate-300'
+                        }`}>
+                          {isSelected && '✓'}
                         </span>
                       </div>
-                      <div className="text-xs text-slate-500 mt-0.5">
-                        {wrk.skill_name || 'Electrician'} • {wrk.years_experience} yrs exp • {wrk.jobs_completed} jobs
-                      </div>
-                      <div className="flex items-center space-x-1 text-amber-500 text-xs font-bold mt-1">
-                        <Star className="w-3.5 h-3.5 fill-amber-400" />
-                        <span>{wrk.rating || 4.8} Rating</span>
-                        <span className="text-slate-400 font-normal ml-2">~1.4 km away</span>
-                      </div>
                     </div>
-
-                    <div className="text-right">
-                      <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                        isSelected ? 'border-coop-600 bg-coop-600 text-white' : 'border-slate-300'
-                      }`}>
-                        {isSelected && '✓'}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
 
             <button
               type="button"

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { apiRequest } from '../../services/api';
-import { CheckCircle2, PlusCircle, ExternalLink } from 'lucide-react';
+import { CheckCircle2, PlusCircle, ExternalLink, Download } from 'lucide-react';
 import { InsuranceClaim, InsuranceScheme, InsuranceContribution } from '../../types';
+import { SpeechToTextInput } from '../common/SpeechToTextInput';
 
 interface WorkerInsuranceDashboardProps {
   onBack?: () => void;
@@ -16,13 +17,13 @@ export const WorkerInsuranceDashboard: React.FC<WorkerInsuranceDashboardProps> =
   const [schemes, setSchemes] = useState<InsuranceScheme[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Claim form state
+  // Claim form state (clean initial state, zero hardcoded values)
   const [showClaimForm, setShowClaimForm] = useState(false);
   const [claimType, setClaimType] = useState('Accident');
-  const [incidentDate, setIncidentDate] = useState('2026-09-15');
-  const [claimDescription, setClaimDescription] = useState('Minor wrist sprain while servicing high-voltage distribution switchboard.');
-  const [claimAmount, setClaimAmount] = useState('3500');
-  const [claimDocs, setClaimDocs] = useState('/uploads/claims/medical_receipt_1.pdf');
+  const [incidentDate, setIncidentDate] = useState(new Date().toISOString().split('T')[0]);
+  const [claimDescription, setClaimDescription] = useState('');
+  const [claimAmount, setClaimAmount] = useState('');
+  const [claimDocs, setClaimDocs] = useState('');
   const [claimAccuracyConfirmed, setClaimAccuracyConfirmed] = useState(false);
   const [claimConsentGiven, setClaimConsentGiven] = useState(false);
   const [submittingClaim, setSubmittingClaim] = useState(false);
@@ -57,6 +58,29 @@ export const WorkerInsuranceDashboard: React.FC<WorkerInsuranceDashboardProps> =
     loadData();
   }, []);
 
+  const handleDownloadPolicy = async () => {
+    try {
+      const token = localStorage.getItem('taskunity_token');
+      const response = await fetch('/api/insurance/my-policy/download', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (!response.ok) throw new Error('Policy document download failed');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `TaskUnity_Policy_${policyData?.policy?.policy_number || 'certificate'}.html`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err: any) {
+      alert(err.message || 'Failed to download policy document.');
+    }
+  };
+
   const handleClaimSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setClaimError('');
@@ -80,7 +104,12 @@ export const WorkerInsuranceDashboard: React.FC<WorkerInsuranceDashboardProps> =
       });
 
       if (res.success) {
-        setClaimSuccessMsg('Insurance Claim Submitted Successfully ✓ Status: Submitted');
+        setClaimSuccessMsg('Insurance Claim Submitted Successfully ✓ Status: Submitted. Our cooperative desk will review it shortly.');
+        setClaimDescription('');
+        setClaimAmount('');
+        setClaimDocs('');
+        setClaimAccuracyConfirmed(false);
+        setClaimConsentGiven(false);
         setShowClaimForm(false);
         loadData();
       }
@@ -250,10 +279,11 @@ export const WorkerInsuranceDashboard: React.FC<WorkerInsuranceDashboardProps> =
           <div className="pt-4 border-t border-slate-100 flex flex-wrap gap-3 text-xs">
             <button
               type="button"
-              onClick={() => alert('Document download simulated: policy_raj.pdf')}
-              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-xl"
+              onClick={handleDownloadPolicy}
+              className="px-4 py-2 bg-coop-600 hover:bg-coop-700 text-white font-bold rounded-xl shadow-sm flex items-center space-x-1.5 transition"
             >
-              [ DOWNLOAD DOCUMENT ]
+              <Download className="w-3.5 h-3.5" />
+              <span>[ DOWNLOAD OFFICIAL POLICY DOCUMENT ]</span>
             </button>
             <button
               type="button"
@@ -390,13 +420,20 @@ export const WorkerInsuranceDashboard: React.FC<WorkerInsuranceDashboardProps> =
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  Description of Incident
-                </label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    Description of Incident
+                  </label>
+                  <SpeechToTextInput
+                    onTranscript={(spoken) => setClaimDescription(prev => prev ? `${prev} ${spoken}` : spoken)}
+                    className="text-xs font-bold text-coop-700 bg-coop-50 hover:bg-coop-100 px-2 py-1 rounded-lg flex items-center space-x-1 border border-coop-200 transition"
+                  />
+                </div>
                 <textarea
                   rows={3}
                   value={claimDescription}
                   onChange={(e) => setClaimDescription(e.target.value)}
+                  placeholder="Describe incident details (or use the microphone button to dictate in your language)..."
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs outline-none"
                   required
                 />
