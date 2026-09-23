@@ -1,0 +1,18 @@
+{
+  "short_name": "Task Unity",
+  "name": "Task Unity — Cooperative Gig Services Platform",
+  "description": "Verified skilled workers cooperative with integrated social security & insurance",
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192 512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#047857",
+  "theme_color": "#047857",
+  "display": "standalone",
+  "orientation": "portrait"
+}
