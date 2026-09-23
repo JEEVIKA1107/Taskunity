@@ -970,6 +970,163 @@ async function syncAdditionalData(): Promise<void> {
     }
   }
 
+  // 3b. Dedicated Demo Accounts for 1-Click Access
+  const demoAccounts = [
+    {
+      userId: 'usr-demo-wrk-1',
+      workerId: 'wrk-demo-1',
+      role: 'WORKER',
+      name: 'Ramesh Sundaram (Electrician)',
+      email: 'ramesh.electrician@taskunity.org',
+      phone: '+91 98421 11223',
+      skillId: 'sk-elec',
+      skillName: 'Electrician',
+      status: 'ACTIVE',
+      experience: 6,
+      district: 'Coimbatore',
+      address: '42 Cross Cut Road, Gandhipuram, Coimbatore',
+      lat: 11.0180,
+      lng: 76.9620,
+      rating: 4.9,
+      jobs: 28
+    },
+    {
+      userId: 'usr-demo-wrk-2',
+      workerId: 'wrk-demo-2',
+      role: 'WORKER',
+      name: 'Ramesh Sundaram (Electrician)',
+      email: 'worker@taskunity.org',
+      phone: '+91 98421 11224',
+      skillId: 'sk-elec',
+      skillName: 'Electrician',
+      status: 'ACTIVE',
+      experience: 6,
+      district: 'Coimbatore',
+      address: '42 Cross Cut Road, Gandhipuram, Coimbatore',
+      lat: 11.0180,
+      lng: 76.9620,
+      rating: 4.9,
+      jobs: 28
+    },
+    {
+      userId: 'usr-demo-wrk-3',
+      workerId: 'wrk-demo-3',
+      role: 'WORKER',
+      name: 'Suresh Verma (Plumber - Pending Cert)',
+      email: 'suresh.plumber@taskunity.org',
+      phone: '+91 98421 22334',
+      skillId: 'sk-plumb',
+      skillName: 'Plumber',
+      status: 'SKILL_CERTIFICATION_PENDING',
+      experience: 4,
+      district: 'Coimbatore',
+      address: '18 Saibaba Colony, Coimbatore',
+      lat: 11.0310,
+      lng: 76.9420,
+      rating: 4.6,
+      jobs: 2
+    }
+  ];
+
+  for (const da of demoAccounts) {
+    const emLower = da.email.toLowerCase().trim();
+    const existing = await getOne(`SELECT user_id FROM users WHERE email = ?`, [emLower]);
+
+    if (!existing) {
+      const phoneConflict = await getOne(`SELECT user_id FROM users WHERE phone = ?`, [da.phone]);
+      const finalPhone = phoneConflict ? `+91 98421 ${Math.floor(10000 + Math.random() * 89999)}` : da.phone;
+
+      await runQuery(`
+        INSERT INTO users (user_id, role, name, email, phone, password_hash, language, account_status, created_at, updated_at, last_login)
+        VALUES (?, 'WORKER', ?, ?, ?, ?, 'en', 'ACTIVE', ?, ?, ?)
+      `, [da.userId, da.name, emLower, finalPhone, passwordHash, now, now, now]);
+
+      await runQuery(`
+        INSERT INTO workers (worker_id, user_id, onboarding_status, dob, gender, address, district, state, profile_photo, primary_skill_id, secondary_skills, years_experience, preferred_working_area, rating, jobs_completed, insurance_contribution_enabled, created_at, updated_at)
+        VALUES (?, ?, ?, '1991-03-20', 'Male', ?, ?, 'Tamil Nadu', '', ?, '["Technician"]', ?, ?, ?, ?, 1, ?, ?)
+      `, [da.workerId, da.userId, da.status, da.address, da.district, da.skillId, da.experience, `${da.district} City Center`, da.rating, da.jobs, now, now]);
+
+      await runQuery(`
+        INSERT OR IGNORE INTO worker_skills (id, worker_id, skill_id, is_primary, years_experience)
+        VALUES (?, ?, ?, 1, ?)
+      `, [`ws-${da.workerId}`, da.workerId, da.skillId, da.experience]);
+
+      await runQuery(`
+        INSERT OR IGNORE INTO worker_availability (availability_id, worker_id, is_available, location_sharing_enabled, last_status_change)
+        VALUES (?, ?, 1, 1, ?)
+      `, [`av-${da.workerId}`, da.workerId, now]);
+
+      await runQuery(`
+        INSERT OR IGNORE INTO worker_locations (location_id, worker_id, booking_id, latitude, longitude, heading, speed, location_state, updated_at)
+        VALUES (?, ?, NULL, ?, ?, 0, 0, 'AVAILABLE', ?)
+      `, [`loc-${da.workerId}`, da.workerId, da.lat, da.lng, now]);
+
+      if (da.status === 'ACTIVE') {
+        await runQuery(`
+          INSERT OR IGNORE INTO eshram_records (eshram_id, worker_id, is_registered, eshram_number, holder_name, document_url, verification_status, verified_by, verified_at, created_at)
+          VALUES (?, ?, 1, 'UAN-9921-3841-8899', ?, '/uploads/docs/eshram_verified.pdf', 'VERIFIED', 'usr-admin', ?, ?)
+        `, [`esh-${da.workerId}`, da.workerId, da.name, now, now]);
+
+        await runQuery(`
+          INSERT OR IGNORE INTO certifications (certification_id, worker_id, primary_skill, certification_name, certificate_number, issuing_org, issue_date, expiry_date, document_url, verification_status, verified_by, verified_at, created_at)
+          VALUES (?, ?, ?, ?, 'NSDC-CERT-2023-882', 'National Skill Development Corporation', '2023-01-15', '2033-01-14', '/uploads/docs/cert_verified.pdf', 'VERIFIED', 'usr-admin', ?, ?)
+        `, [`cert-${da.workerId}`, da.workerId, da.skillName, `NSDC Verified ${da.skillName}`, now, now]);
+
+        await runQuery(`
+          INSERT OR IGNORE INTO insurance_policies (policy_id, worker_id, provider_or_scheme, policy_number, policy_holder_name, coverage, start_date, expiry_date, document_url, verification_status, verified_by, verified_at, created_at, updated_at)
+          VALUES (?, ?, 'Task Unity / PMSBY Accidental Cover', 'POL-TU-DEMO-2026', ?, '₹2,00,000 Accidental & Disability Cover', '2026-09-01', '2027-08-31', '/uploads/docs/policy_verified.pdf', 'VERIFIED', 'usr-admin', ?, ?, ?)
+        `, [`pol-${da.workerId}`, da.workerId, da.name, now, now, now]);
+
+        await runQuery(`
+          INSERT OR IGNORE INTO consents (consent_id, user_id, entity_type, entity_id, consent_type, consent_version, accepted, accepted_at, ip_address_or_audit_reference, created_at, updated_at)
+          VALUES (?, ?, 'INSURANCE_POLICY', ?, 'INSURANCE_TERMS_AND_CONDITIONS', 'v1.0', 1, ?, '127.0.0.1 (Verification Sync)', ?, ?)
+        `, [`cns-${da.workerId}`, da.userId, `pol-${da.workerId}`, now, now, now]);
+      }
+    }
+  }
+
+  // 3c. Dedicated Demo Customer Accounts
+  const demoCustomers = [
+    {
+      userId: 'usr-demo-cust-1',
+      customerId: 'cust-demo-1',
+      email: 'priya.customer@taskunity.org',
+      name: 'Priya Dharshini (Customer)',
+      phone: '+91 98421 33445',
+      address: '15 West Club Road, Race Course, Coimbatore',
+      district: 'Coimbatore'
+    },
+    {
+      userId: 'usr-demo-cust-2',
+      customerId: 'cust-demo-2',
+      email: 'customer@taskunity.org',
+      name: 'Priya Dharshini (Customer)',
+      phone: '+91 98421 33446',
+      address: '15 West Club Road, Race Course, Coimbatore',
+      district: 'Coimbatore'
+    }
+  ];
+
+  for (const dc of demoCustomers) {
+    const emLower = dc.email.toLowerCase().trim();
+    const existing = await getOne(`SELECT user_id FROM users WHERE email = ?`, [emLower]);
+
+    if (!existing) {
+      const phoneConflict = await getOne(`SELECT user_id FROM users WHERE phone = ?`, [dc.phone]);
+      const finalPhone = phoneConflict ? `+91 98421 ${Math.floor(10000 + Math.random() * 89999)}` : dc.phone;
+
+      await runQuery(`
+        INSERT INTO users (user_id, role, name, email, phone, password_hash, language, account_status, created_at, updated_at, last_login)
+        VALUES (?, 'CUSTOMER', ?, ?, ?, ?, 'en', 'ACTIVE', ?, ?, ?)
+      `, [dc.userId, dc.name, emLower, finalPhone, passwordHash, now, now, now]);
+
+      await runQuery(`
+        INSERT INTO customers (customer_id, user_id, address, district, state, preferred_language, created_at)
+        VALUES (?, ?, ?, ?, 'Tamil Nadu', 'en', ?)
+      `, [dc.customerId, dc.userId, dc.address, dc.district, now]);
+    }
+  }
+
   // 4. Multi-district AI Demand Forecast & Workforce Allocation
   const regionalForecasts = [
     { id: 'df-tp-1', district: 'Tiruppur', skill: 'Painter', period: 'Next 7 Days', level: 'High Demand', conf: 0.91, trend: '+22% vs Last Week', factors: '{"textile_hub_expansion": true, "factory_repaint_cycle": "Active"}' },

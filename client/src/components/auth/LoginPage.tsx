@@ -183,39 +183,72 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           {/* Quick Demo Fill Pills */}
           <div className="mt-6 pt-5 border-t border-slate-100">
             <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider text-center mb-2">
-              {t('demo_quick_login')}
+              ⚡ {t('demo_quick_login')} (1-Click)
             </div>
             <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
-                onClick={() => {
+                disabled={isLoading}
+                onClick={async () => {
                   setSelectedRole('WORKER');
                   setEmail('ramesh.electrician@taskunity.org');
                   setPassword('WorkerPass123!');
+                  setError('');
+                  try {
+                    setIsLoading(true);
+                    const authUser = await login('ramesh.electrician@taskunity.org', 'WorkerPass123!', 'WORKER');
+                    if (onLoginSuccess) onLoginSuccess(authUser);
+                  } catch (e: any) {
+                    setError(e.message || 'Worker login failed');
+                  } finally {
+                    setIsLoading(false);
+                  }
                 }}
-                className="px-2 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-bold text-center border border-emerald-200"
+                className="px-2 py-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-bold text-center border border-emerald-200 transition shadow-sm active:scale-95 disabled:opacity-50"
               >
                 Ramesh (Worker)
               </button>
               <button
                 type="button"
-                onClick={() => {
+                disabled={isLoading}
+                onClick={async () => {
                   setSelectedRole('CUSTOMER');
                   setEmail('priya.customer@taskunity.org');
                   setPassword('CustomerPass123!');
+                  setError('');
+                  try {
+                    setIsLoading(true);
+                    const authUser = await login('priya.customer@taskunity.org', 'CustomerPass123!', 'CUSTOMER');
+                    if (onLoginSuccess) onLoginSuccess(authUser);
+                  } catch (e: any) {
+                    setError(e.message || 'Customer login failed');
+                  } finally {
+                    setIsLoading(false);
+                  }
                 }}
-                className="px-2 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-800 text-[11px] font-bold text-center border border-blue-200"
+                className="px-2 py-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-800 text-[11px] font-bold text-center border border-blue-200 transition shadow-sm active:scale-95 disabled:opacity-50"
               >
                 Priya (Customer)
               </button>
               <button
                 type="button"
-                onClick={() => {
+                disabled={isLoading}
+                onClick={async () => {
                   setSelectedRole('ADMIN');
                   setEmail('admin@taskunity.org');
                   setPassword('AdminPass123!');
+                  setError('');
+                  try {
+                    setIsLoading(true);
+                    const authUser = await login('admin@taskunity.org', 'AdminPass123!', 'ADMIN');
+                    if (onLoginSuccess) onLoginSuccess(authUser);
+                  } catch (e: any) {
+                    setError(e.message || 'Admin login failed');
+                  } finally {
+                    setIsLoading(false);
+                  }
                 }}
-                className="px-2 py-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-800 text-[11px] font-bold text-center border border-purple-200"
+                className="px-2 py-2 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-800 text-[11px] font-bold text-center border border-purple-200 transition shadow-sm active:scale-95 disabled:opacity-50"
               >
                 Admin Board
               </button>
@@ -342,6 +375,37 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             <label htmlFor="showPasswordToggle" className="text-xs text-slate-600 cursor-pointer">
               {showPassword ? t('hide_password') : t('show_password')}
             </label>
+          </div>
+
+          {/* Quick Demo Autofill helper for current role */}
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-slate-500 uppercase">⚡ Demo Credentials:</span>
+              <button
+                type="button"
+                onClick={() => {
+                  if (selectedRole === 'WORKER') {
+                    setEmail('ramesh.electrician@taskunity.org');
+                    setPassword('WorkerPass123!');
+                  } else if (selectedRole === 'CUSTOMER') {
+                    setEmail('priya.customer@taskunity.org');
+                    setPassword('CustomerPass123!');
+                  } else {
+                    setEmail('admin@taskunity.org');
+                    setPassword('AdminPass123!');
+                  }
+                  setError('');
+                }}
+                className="text-[11px] font-bold text-coop-700 hover:text-coop-900 underline"
+              >
+                Auto-fill
+              </button>
+            </div>
+            <div className="text-[11px] font-mono text-slate-600 mt-1">
+              {selectedRole === 'WORKER' && 'ramesh.electrician@taskunity.org | WorkerPass123!'}
+              {selectedRole === 'CUSTOMER' && 'priya.customer@taskunity.org | CustomerPass123!'}
+              {selectedRole === 'ADMIN' && 'admin@taskunity.org | AdminPass123!'}
+            </div>
           </div>
 
           <button

@@ -17,11 +17,11 @@ export const Header: React.FC<HeaderProps> = ({ onOpenNotifications: _onOpenNoti
   const [showDemoMenu, setShowDemoMenu] = useState(false);
   const [loadingDemo, setLoadingDemo] = useState(false);
 
-  const handleQuickLogin = async (email: string, pass: string) => {
+  const handleQuickLogin = async (email: string, pass: string, role?: string) => {
     try {
       setLoadingDemo(true);
       setShowDemoMenu(false);
-      await login(email, pass);
+      await login(email, pass, role);
     } catch (err: any) {
       alert(err.message || 'Login failed');
     } finally {
@@ -67,7 +67,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenNotifications: _onOpenNoti
               {showDemoMenu && (
                 <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50 divide-y divide-slate-100">
                   <button
-                    onClick={() => handleQuickLogin('priya.customer@taskunity.org', 'CustomerPass123!')}
+                    onClick={() => handleQuickLogin('priya.customer@taskunity.org', 'CustomerPass123!', 'CUSTOMER')}
                     className="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 flex items-center justify-between"
                   >
                     <div>
@@ -78,7 +78,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenNotifications: _onOpenNoti
                   </button>
 
                   <button
-                    onClick={() => handleQuickLogin('ramesh.electrician@taskunity.org', 'WorkerPass123!')}
+                    onClick={() => handleQuickLogin('ramesh.electrician@taskunity.org', 'WorkerPass123!', 'WORKER')}
                     className="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 flex items-center justify-between"
                   >
                     <div>
@@ -89,7 +89,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenNotifications: _onOpenNoti
                   </button>
 
                   <button
-                    onClick={() => handleQuickLogin('suresh.plumber@taskunity.org', 'WorkerPass123!')}
+                    onClick={() => handleQuickLogin('suresh.plumber@taskunity.org', 'WorkerPass123!', 'WORKER')}
                     className="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 flex items-center justify-between"
                   >
                     <div>
@@ -100,7 +100,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenNotifications: _onOpenNoti
                   </button>
 
                   <button
-                    onClick={() => handleQuickLogin('admin@taskunity.org', 'AdminPass123!')}
+                    onClick={() => handleQuickLogin('admin@taskunity.org', 'AdminPass123!', 'ADMIN')}
                     className="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 flex items-center justify-between"
                   >
                     <div>
