@@ -10,6 +10,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/cli": "^8.5.2",
+    "@capacitor/core": "^8.5.2",
     "@types/leaflet": "^1.9.22",
     "autoprefixer": "^10.6.1",
     "leaflet": "^1.9.4",
