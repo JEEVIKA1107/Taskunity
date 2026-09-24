@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs';
+import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { generateId } from '../utils/idGenerator';

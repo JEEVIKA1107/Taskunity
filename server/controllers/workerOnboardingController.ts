@@ -103,7 +103,7 @@ export async function submitBasicProfile(req: AuthenticatedRequest, res: Respons
       }
     }
 
-    await logAudit(userId, 'WORKER_BASIC_PROFILE_SUBMITTED', 'WORKER', workerId, { district, primarySkillId }, req.ip || '127.0.0.1');
+    await logAudit(userId, 'WORKER_BASIC_PROFILE_SUBMITTED', 'WORKER', workerId ?? null, { district, primarySkillId }, req.ip ?? '127.0.0.1');
 
     res.json({
       success: true,
@@ -149,7 +149,7 @@ export async function submitEshram(req: AuthenticatedRequest, res: Response): Pr
 
     await runQuery(`UPDATE workers SET onboarding_status = 'ESHRAM_UNDER_REVIEW', updated_at = ? WHERE worker_id = ?`, [now, workerId]);
 
-    await logAudit(userId, 'ESHRAM_SUBMISSION', 'ESHRAM', eshramId, { isRegistered: isReg, eshramNumber }, req.ip || '127.0.0.1');
+    await logAudit(userId, 'ESHRAM_SUBMISSION', 'ESHRAM', eshramId, { isRegistered: isReg, eshramNumber }, req.ip ?? '127.0.0.1');
 
     res.json({
       success: true,
@@ -207,7 +207,7 @@ export async function submitSkillCertification(req: AuthenticatedRequest, res: R
 
     await runQuery(`UPDATE workers SET onboarding_status = 'CERTIFICATION_UNDER_REVIEW', updated_at = ? WHERE worker_id = ?`, [now, workerId]);
 
-    await logAudit(userId, 'SKILL_CERTIFICATION_SUBMISSION', 'CERTIFICATION', certId, { certificateNumber, primarySkill }, req.ip || '127.0.0.1');
+    await logAudit(userId, 'SKILL_CERTIFICATION_SUBMISSION', 'CERTIFICATION', certId, { certificateNumber, primarySkill }, req.ip ?? '127.0.0.1');
 
     res.json({
       success: true,
@@ -241,7 +241,7 @@ export async function handleInsuranceDecision(req: AuthenticatedRequest, res: Re
         WHERE worker_id = ?
       `, [now, workerId]);
 
-      await logAudit(userId, 'INSURANCE_DECISION_SKIPPED', 'WORKER', workerId, { decision: 'NO_NOT_NOW' }, req.ip || '127.0.0.1');
+      await logAudit(userId, 'INSURANCE_DECISION_SKIPPED', 'WORKER', workerId ?? null, { decision: 'NO_NOT_NOW' }, req.ip ?? '127.0.0.1');
 
       res.json({
         success: true,
@@ -323,7 +323,7 @@ export async function submitInsurancePolicyWithConsent(req: AuthenticatedRequest
     await runQuery(`
       INSERT INTO consents (consent_id, user_id, entity_type, entity_id, consent_type, consent_version, accepted, accepted_at, ip_address_or_audit_reference, created_at, updated_at)
       VALUES (?, ?, 'INSURANCE_POLICY', ?, 'INSURANCE_TERMS_AND_CONDITIONS', 'v1.0', 1, ?, ?, ?, ?)
-    `, [consentId, userId, policyId, now, `${req.ip || '127.0.0.1'} (Consent Verified)`, now, now]);
+    `, [consentId, userId, policyId, now, `${req.ip ?? '127.0.0.1'} (Consent Verified)`, now, now]);
 
     await runQuery(`UPDATE workers SET onboarding_status = 'INSURANCE_UNDER_REVIEW', updated_at = ? WHERE worker_id = ?`, [now, workerId]);
 
@@ -332,7 +332,7 @@ export async function submitInsurancePolicyWithConsent(req: AuthenticatedRequest
       providerOrScheme,
       isExistingPolicy: !!isExistingPolicy,
       consentId
-    }, req.ip || '127.0.0.1');
+    }, req.ip ?? '127.0.0.1');
 
     res.json({
       success: true,
@@ -374,10 +374,10 @@ export async function handleContributionChoice(req: AuthenticatedRequest, res: R
       WHERE worker_id = ?
     `, [enabled ? 1 : 0, now, workerId]);
 
-    await logAudit(userId, 'INSURANCE_CONTRIBUTION_DECISION', 'WORKER', workerId, {
+    await logAudit(userId, 'INSURANCE_CONTRIBUTION_DECISION', 'WORKER', workerId ?? null,  {
       enabled,
       defaultRate: '10%'
-    }, req.ip || '127.0.0.1');
+    }, req.ip ?? '127.0.0.1');
 
     res.json({
       success: true,
