@@ -61,7 +61,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // Serve frontend in production if built
-const clientDist = path.join(__dirname, '../client/dist');
+const clientDist = path.join(__dirname, '../../client/dist');
 if (fs.existsSync(clientDist)) {
   app.use(express.static(clientDist));
   app.use((req, res, next) => {
