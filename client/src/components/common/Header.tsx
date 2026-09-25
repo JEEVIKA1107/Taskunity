@@ -32,14 +32,14 @@ export const Header: React.FC<HeaderProps> = ({ onOpenNotifications: _onOpenNoti
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16 items-center">
+        <div className="flex justify-between min-h-16 py-2 items-center gap-2">
           {/* Brand / Logo */}
-          <div className="flex items-center space-x-3 cursor-pointer" onClick={() => onNavigate && onNavigate('dashboard')}>
+         <div className="flex items-center space-x-2 sm:space-x-3 cursor-pointer min-w-0" onClick={() => onNavigate && onNavigate('dashboard')}>
             <div className="w-10 h-10 rounded-2xl bg-coop-600 flex items-center justify-center text-white font-black text-xl shadow-md shadow-coop-200">
               TU
             </div>
             <div>
-              <div className="font-black text-lg tracking-tight text-slate-900 flex items-center space-x-1.5">
+             <div className="font-black text-base sm:text-lg tracking-tight text-slate-900 flex items-center space-x-1.5 min-w-0">
                 <span>TASK UNITY</span>
                 <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-coop-100 text-coop-800">
                   Cooperative
@@ -52,7 +52,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenNotifications: _onOpenNoti
           </div>
 
           {/* Controls: Demo Accounts + Language Selector + User Info / Logout */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2 sm:space-x-3 shrink-0">
             {/* Quick Demo Switcher */}
             <div className="relative">
               <button
